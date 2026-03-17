@@ -25,8 +25,6 @@ import {
     Bell,
 } from 'lucide-react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { ProtectedRoute } from '../components/ProtectedRoute';
-import { useAuth } from '../context/AuthContext';
 
 export default function Dashboard() {
     const navigate = useNavigate();
@@ -41,7 +39,7 @@ export default function Dashboard() {
     const userInitials = userName
         .split(' ')
         .filter(Boolean)
-        .map((part) => part[0])
+        .map((part: any) => part[0])
         .join('')
         .slice(0, 2)
         .toUpperCase();

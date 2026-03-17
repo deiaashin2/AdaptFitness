@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Activity } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -14,7 +14,6 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const { login, signInWithGoogle, signInWithGithub } = useAuth();
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +39,7 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
-    } catch (err: any) {
+    } catch {
       setError('Google sign-in failed. Please try again.');
     }
   };
@@ -48,7 +47,7 @@ export default function LoginPage() {
   const handleGithubSignIn = async () => {
     try {
       await signInWithGithub();
-    } catch (err: any) {
+    } catch {
       setError('GitHub sign-in failed. Please try again.');
     }
   };
