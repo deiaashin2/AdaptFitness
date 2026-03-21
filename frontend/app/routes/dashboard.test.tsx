@@ -9,6 +9,17 @@ vi.mock('react-router', async () => {
   return { ...actual, useNavigate: () => vi.fn() }
 })
 
+vi.mock('../context/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: '123', email: 'test@example.com' },
+    isAuthenticated: true,
+    login: vi.fn(),
+    logout: vi.fn(),
+    session: null,
+  }),
+  AuthProvider: ({ children }: any) => <>{children}</>,
+}))
+
 vi.mock('recharts', () => ({
   AreaChart: ({ children }: any) => <div>{children}</div>,
   BarChart: ({ children }: any) => <div>{children}</div>,
