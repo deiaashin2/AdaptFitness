@@ -9,8 +9,12 @@ on:
       - main
     paths:
       - 'frontend/**'
+      - 'backend/**'
       - '.github/workflows/build-and-deploy.yml'
   workflow_dispatch:
+
+env:
+  NODE_VERSION: '24'
 
 jobs:
   quality-checks:
@@ -43,6 +47,32 @@ jobs:
       - name: Run tests
         working-directory: ./frontend
         run: npm run test:ci
+  backend-tests:
+    name: supabase and database connection test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'backend/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run all backend tests
+        working-directory: ./backend
+        run: npm run test:all
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
 
   build:
     name: Build frontend
