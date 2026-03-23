@@ -7,7 +7,7 @@ const supabase = createClient(
 );
 
 async function testDatabase() {
-    console.log('🗄️  Testing Database Connection...\n');
+    console.log('Testing Database Connection...\n');
 
     try {
         // Test 1: Check if we can access data from the SQL tables
@@ -19,7 +19,7 @@ async function testDatabase() {
         if (error) {
             // Check if there are no rows
             if (error.code === 'PGRST116') {
-                console.log('Database connected! (No data yet)');
+                console.log('Database connected!');
             } else {
                 console.error('Database error:', error.message);
                 return;
@@ -29,11 +29,9 @@ async function testDatabase() {
             if (tables && tables.length > 0) {
                 console.log('Found existing data:', tables.length, 'profile(s)');
             } else {
-                console.log('Tables exist (no data yet)');
+                console.log('Tables exist!');
             }
         }
-
-        console.log('\nDatabase test PASSED\n');
 
     } catch (err) {
         console.error('Connection failed :( :', err.message);
