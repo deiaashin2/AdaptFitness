@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Label } from '../components/ui/label';
@@ -9,111 +11,190 @@ import { Badge } from '../components/ui/badge';
 
 interface Exercise {
   id: string;
-  name: string;
+  user_id?: string
+  exercise_type: string
   sets: number;
   reps: number;
   weight?: number;
-  duration?: number;
-  workoutType: 'strength' | 'cardio' | 'flexibility';
-  time: string;
+  duration_minutes?: number;
+  exercise_date: string;
+  created_at?: string;
 }
 
 export default function FitnessLog() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
   
   const [newExercise, setNewExercise] = useState({
-    name: '',
+    exercise_type: '',
     sets: '',
     reps: '',
     weight: '',
-    duration: '',
-    workoutType: 'strength' as 'strength' | 'cardio' | 'flexibility',
+    duration_minutes: '',
   });
 
-  const [exercises, setExercises] = useState<Exercise[]>([
-    {
-      id: '1',
-      name: 'Bench Press',
-      sets: 4,
-      reps: 10,
-      weight: 135,
-      workoutType: 'strength',
-      time: '9:15 AM',
-    },
-    {
-      id: '2',
-      name: 'Running',
-      sets: 1,
-      reps: 0,
-      duration: 30,
-      workoutType: 'cardio',
-      time: '10:00 AM',
-    },
-    {
-      id: '3',
-      name: 'Squats',
-      sets: 3,
-      reps: 12,
-      weight: 185,
-      workoutType: 'strength',
-      time: '9:45 AM',
-    },
-  ]);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [weeklyExercises, setWeeklyExercises] = useState<Exercise[]>([]);
+
+  // Fetch today's exercises on mount
+  useEffect(() => {
+    if (user) {
+      fetchTodaysExercises();
+      fetchWeeklyExercises();
+    }
+  }, [user]);
+
+  const fetchTodaysExercises = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const { data, error } = await supabase
+        .from('exercise_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('exercise_date', today.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching exercises:', error);
+      } else {
+        setExercises(data || []);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchWeeklyExercises = async () => {
+    if (!user) return;
+  
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+  
+    const { data, error } = await supabase
+      .from('exercise_logs')
+      .select('*')
+      .eq('user_id', user.id)
+      .gte('exercise_date', weekStart.toISOString())
+      .order('exercise_date', { ascending: true });
+  
+    if (!error && data) setWeeklyExercises(data);
+  };
 
   const totalExercises = exercises.length;
-  const totalSets = exercises.reduce((sum, ex) => sum + ex.sets, 0);
-  const strengthExercises = exercises.filter(ex => ex.workoutType === 'strength').length;
-  const cardioExercises = exercises.filter(ex => ex.workoutType === 'cardio').length;
-  const totalDuration = exercises.reduce((sum, ex) => sum + (ex.duration || 0), 0);
+  const totalSets = exercises.reduce((sum, ex) => sum + (ex.sets || 0), 0);
+  const totalDuration = exercises.reduce((sum, ex) => sum + (ex.duration_minutes || 0), 0);
 
-  const handleAddExercise = (e: React.FormEvent) => {
+  const handleAddExercise = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const exerciseEntry: Exercise = {
-      id: Date.now().toString(),
-      name: newExercise.name,
-      sets: parseInt(newExercise.sets),
-      reps: parseInt(newExercise.reps),
-      weight: newExercise.weight ? parseFloat(newExercise.weight) : undefined,
-      duration: newExercise.duration ? parseFloat(newExercise.duration) : undefined,
-      workoutType: newExercise.workoutType,
-      time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-    };
+    if (!user) {
+      console.error('User not logged in');
+      alert('You must be logged in to add exercises.');
+      return;
+    }
+  
+    try {
+      console.log('Saving exercise to Supabase...');
+      console.log('User ID:', user.id);
+  
+      const exerciseData = {
+        user_id: user.id,
+        exercise_type: newExercise.exercise_type,
+        sets: parseInt(newExercise.sets),
+        reps: parseInt(newExercise.reps),
+        weight: newExercise.weight ? parseFloat(newExercise.weight) : null,
+        duration_minutes: newExercise.duration_minutes ? parseFloat(newExercise.duration_minutes) : null,
+        exercise_date: new Date().toISOString(),
+      };
 
-    setExercises([...exercises, exerciseEntry]);
-    setNewExercise({
-      name: '',
-      sets: '',
-      reps: '',
-      weight: '',
-      duration: '',
-      workoutType: 'strength',
-    });
-    setIsAddingExercise(false);
+      console.log('Exercise data:', exerciseData);
+  
+      const { data, error } = await supabase
+        .from('exercise_logs')
+        .insert(exerciseData)
+        .select()
+        .single();
+  
+        if (error) {
+          console.error('Supabase error:', error);
+          console.error('Error details:', {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+          });
+          alert(`Failed to save exercise: ${error.message}`);
+          return;
+        }
+    
+        console.log('Exercise saved successfully!', data);
+        
+        // Add to local state
+        if (data) {
+          setExercises([data, ...exercises]);
+        }
+        
+        // Reset form
+        setNewExercise({
+          exercise_type: '',
+          sets: '',
+          reps: '',
+          weight: '',
+          duration_minutes: '',
+        });
+        setIsAddingExercise(false);
+      } catch (error) {
+        console.error('Unexpected error:', error);
+        alert(`An error occurred: ${error}`);
+      }
   };
 
-  const handleDeleteExercise = (id: string) => {
-    setExercises(exercises.filter(ex => ex.id !== id));
-  };
-
-  const getWorkoutTypeColor = (type: string) => {
-    switch (type) {
-      case 'strength':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'cardio':
-        return 'bg-red-100 text-red-700 border-red-200';
-      case 'flexibility':
-        return 'bg-purple-100 text-purple-700 border-purple-200';
-      default:
-        return 'bg-gray-100 text-gray-700 border-gray-200';
+  const handleDeleteExercise = async (id: string) => {
+    try {
+      console.log('🗑️ Deleting exercise...');
+  
+      const { error } = await supabase
+        .from('exercise_logs')
+        .delete()
+        .eq('id', id);
+  
+      if (error) {
+        console.error('Error deleting exercise:', error);
+        alert('Failed to delete exercise.');
+      } else {
+        console.log('Exercise deleted!');
+        setExercises(exercises.filter(ex => ex.id !== id));
+      }
+    } catch (error) {
+      console.error('Error:', error);
     }
   };
 
   const filteredExercises = exercises.filter(exercise =>
-    exercise.name.toLowerCase().includes(searchQuery.toLowerCase())
+    exercise.exercise_type?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
+          <p className="mt-4 text-slate-600">Loading your exercises...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-linear-to-b from-slate-50 to-white">
@@ -176,18 +257,6 @@ export default function FitnessLog() {
                 {/* Workout Breakdown */}
                 <div className="space-y-3">
                   <h4 className="font-medium text-slate-900">Workout Breakdown</h4>
-                  
-                  {/* Strength */}
-                  <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                    <span className="text-sm font-medium text-blue-900">Strength Training</span>
-                    <span className="text-lg font-bold text-blue-900">{strengthExercises}</span>
-                  </div>
-
-                  {/* Cardio */}
-                  <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
-                    <span className="text-sm font-medium text-red-900">Cardio</span>
-                    <span className="text-lg font-bold text-red-900">{cardioExercises}</span>
-                  </div>
 
                   {/* Duration */}
                   {totalDuration > 0 && (
@@ -248,35 +317,11 @@ export default function FitnessLog() {
                       <Label htmlFor="exercise-name">Exercise Name</Label>
                       <Input
                         id="exercise-name"
-                        placeholder="e.g., Bench Press"
-                        value={newExercise.name}
-                        onChange={(e) => setNewExercise({ ...newExercise, name: e.target.value })}
+                        placeholder="e.g., Bench Press, Running, Yoga"
+                        value={newExercise.exercise_type}
+                        onChange={(e) => setNewExercise({ ...newExercise, exercise_type: e.target.value })}
                         required
                       />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Workout Type</Label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          { value: 'strength', label: 'Strength' },
-                          { value: 'cardio', label: 'Cardio' },
-                          { value: 'flexibility', label: 'Flexibility' },
-                        ].map((type) => (
-                          <button
-                            key={type.value}
-                            type="button"
-                            onClick={() => setNewExercise({ ...newExercise, workoutType: type.value as any })}
-                            className={`p-2 border-2 rounded-lg text-sm transition-all ${
-                              newExercise.workoutType === type.value
-                                ? 'bg-green-600 hover:bg-green-700'
-                                : 'border-slate-200 hover:border-slate-300'
-                            }`}
-                          >
-                            {type.label}
-                          </button>
-                        ))}
-                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -318,8 +363,8 @@ export default function FitnessLog() {
                           id="duration"
                           type="number"
                           placeholder="0"
-                          value={newExercise.duration}
-                          onChange={(e) => setNewExercise({ ...newExercise, duration: e.target.value })}
+                          value={newExercise.duration_minutes}
+                          onChange={(e) => setNewExercise({ ...newExercise, duration_minutes: e.target.value })}
                         />
                       </div>
                     </div>
@@ -355,28 +400,30 @@ export default function FitnessLog() {
                         key={exercise.id}
                         className="flex items-center gap-4 p-4 border rounded-lg hover:shadow-md transition-shadow"
                       >
-                        <div className={`p-3 rounded-lg ${getWorkoutTypeColor(exercise.workoutType)}`}>
-                          <Dumbbell className="size-5" />
+                        <div className='p-3 rounded-lg bg-emerald-50 border border-emerald-200'>
+                          <Dumbbell className="size-5 text-emerald-600" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-semibold text-slate-900">{exercise.name}</h4>
-                            <Badge variant="outline" className="text-xs capitalize">
-                              {exercise.workoutType}
-                            </Badge>
-                          </div>
-                          <div className="flex gap-4 text-sm text-slate-600">
+                          <h4 className="font-semibold text-slate-900 mb-1">{exercise.exercise_type || 'Exercise'}</h4>
+                          <div className="flex flex-wrap gap-3 text-sm text-slate-600">
                             <span>{exercise.sets} sets</span>
                             <span>{exercise.reps} reps</span>
-                            {exercise.weight && <span className="font-medium text-slate-900">{exercise.weight} lbs</span>}
-                            {exercise.duration && (
-                              <span className="flex items-center gap-1">
-                                <Timer className="size-3" />
-                                {exercise.duration} min
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-slate-500 mt-1">{exercise.time}</p>
+                          {exercise.weight && (
+                            <span className="font-medium text-slate-900">{exercise.weight} lbs</span>
+                          )}
+                          {exercise.duration_minutes && (
+                            <span className="flex items-center gap-1">
+                            <Timer className="size-3" />
+                            {exercise.duration_minutes} min
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {new Date(exercise.exercise_date).toLocaleTimeString('en-US', { 
+                          hour: 'numeric', 
+                          minute: '2-digit' 
+                        })}
+                          </p>
                         </div>
                         <Button
                           variant="ghost"
@@ -404,6 +451,60 @@ export default function FitnessLog() {
                 )}
               </CardContent>
             </Card>
+            {/* This Week's Workouts */}
+{weeklyExercises.length > 0 && (
+  <Card>
+    <CardHeader>
+      <CardTitle>This Week's Workouts</CardTitle>
+      <CardDescription>
+        {weeklyExercises.length} exercises logged this week
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <div className="space-y-4">
+        {(() => {
+          const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          const grouped: { [key: string]: Exercise[] } = {};
+
+          weeklyExercises.forEach(ex => {
+            const day = days[new Date(ex.exercise_date).getDay()];
+            if (!grouped[day]) grouped[day] = [];
+            grouped[day].push(ex);
+          });
+
+          return Object.entries(grouped).map(([day, exs]) => (
+            <div key={day}>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium text-slate-700">{day}</h4>
+                <Badge variant="outline" className="text-xs">
+                  {exs.length} exercise{exs.length > 1 ? 's' : ''} · {exs.reduce((s, e) => s + (e.sets || 0), 0)} sets
+                </Badge>
+              </div>
+              <div className="space-y-2">
+                {exs.map(exercise => (
+                  <div key={exercise.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                    <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200">
+                      <Dumbbell className="size-4 text-emerald-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-slate-900 text-sm">{exercise.exercise_type}</p>
+                      <div className="flex gap-2 text-xs text-slate-500">
+                        <span>{exercise.sets} sets</span>
+                        <span>{exercise.reps} reps</span>
+                        {exercise.weight && <span>{exercise.weight} lbs</span>}
+                        {exercise.duration_minutes && <span>{exercise.duration_minutes} min</span>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ));
+        })()}
+      </div>
+    </CardContent>
+  </Card>
+)}
           </div>
         </div>
       </div>

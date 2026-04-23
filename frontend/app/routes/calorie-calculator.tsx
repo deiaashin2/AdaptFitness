@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Label } from '../components/ui/label';
@@ -8,6 +10,8 @@ import { ArrowLeft, Calculator, TrendingDown, TrendingUp, Minus } from 'lucide-r
 
 export default function CalorieCalculator() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
   
   const [formData, setFormData] = useState({
     age: '',
@@ -16,6 +20,7 @@ export default function CalorieCalculator() {
     sex: '',
     activityLevel: '',
     goal: '',
+    goalWeight: '',
   });
 
   const [results, setResults] = useState<{
@@ -25,11 +30,95 @@ export default function CalorieCalculator() {
     weightGain: number;
   } | null>(null);
 
+  // Fetch user's latest calculation on mount
+  useEffect(() => {
+    if (user) {
+      fetchLatestCalculation();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
+
+  const fetchLatestCalculation = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+
+      // Get latest calculation
+      const { data: calcData, error: calcError } = await supabase
+        .from('metabolic_calculations')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (calcError) {
+        console.error('Error fetching calculation:', calcError);
+        setLoading(false);
+        return;
+      }
+
+      // Get latest metrics
+      const { data: metricsData, error: metricsError } = await supabase
+        .from('user_metrics')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (metricsError) {
+        console.error('Error fetching metrics:', metricsError);
+      }
+
+      // If we have data, populate the form and results
+      if (calcData && metricsData) {
+        // Populate form
+        setFormData({
+          age: metricsData.age.toString(),
+          height: metricsData.height.toString(),
+          weight: metricsData.weight.toString(),
+          sex: metricsData.gender,
+          activityLevel: mapActivityLevelFromDB(metricsData.activity_level),
+          goal: calcData.goal,
+          goalWeight: metricsData.goal_weight?.toString() || '',  // ← use goalWeight not goal_weight
+        });
+
+        // Populate results
+        setResults({
+          bmr: calcData.bmr,
+          maintenance: calcData.tdee,
+          weightLoss: calcData.goal === 'lose' ? calcData.calorie_goal : calcData.tdee - 500,
+          weightGain: calcData.goal === 'gain' ? calcData.calorie_goal : calcData.tdee + 300,
+        });
+
+        console.log('Loaded saved calculation and metrics');
+      }
+    } catch (error) {
+      console.error('Error loading calculation:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to map database activity level to form values
+  const mapActivityLevelFromDB = (dbLevel: string): string => {
+    const mapping: { [key: string]: string } = {
+      'sedentary': 'inactive',
+      'lightly_active': 'somewhat-active',
+      'moderately_active': 'active',
+      'very_active': 'very-active',
+    };
+    return mapping[dbLevel] || 'inactive';
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const calculateCalories = (e: React.FormEvent) => {
+  const calculateCalories = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const age = parseFloat(formData.age);
@@ -62,6 +151,85 @@ export default function CalorieCalculator() {
       weightLoss: Math.round(weightLoss),
       weightGain: Math.round(weightGain),
     });
+
+    // Save to database
+    if (user) {
+      try {
+        console.log('Saving data to Supabase...');
+
+        const activityLevelMap: { [key: string]: string } = {
+          'inactive': 'sedentary',
+          'somewhat-active': 'lightly_active',
+          'active': 'moderately_active',
+          'very-active': 'very_active',
+        };
+
+        const { error: metricsError } = await supabase
+          .from('user_metrics')
+          .insert({
+            user_id: user.id,
+            age: parseInt(formData.age),
+            gender: formData.sex,
+            weight: parseFloat(formData.weight),
+            height: parseFloat(formData.height),
+            activity_level: activityLevelMap[formData.activityLevel],
+            unit_system: 'metric',
+            goal_weight: formData.goalWeight ? parseFloat(formData.goalWeight) : null,
+          });
+
+        if (metricsError) {
+          console.error('Error saving metrics:', metricsError);
+        } else {
+          console.log('User metrics saved!');
+        }
+
+        let calorieGoal: number;
+        if (formData.goal === 'lose') {
+          calorieGoal = Math.round(weightLoss);
+        } else if (formData.goal === 'gain') {
+          calorieGoal = Math.round(weightGain);
+        } else {
+          calorieGoal = Math.round(maintenance);
+        }
+
+        let proteinGrams, carbsGrams, fatGrams;
+        if (formData.goal === 'lose') {
+          proteinGrams = Math.round((calorieGoal * 0.4) / 4);
+          carbsGrams = Math.round((calorieGoal * 0.3) / 4);
+          fatGrams = Math.round((calorieGoal * 0.3) / 9);
+        } else if (formData.goal === 'gain') {
+          proteinGrams = Math.round((calorieGoal * 0.3) / 4);
+          carbsGrams = Math.round((calorieGoal * 0.5) / 4);
+          fatGrams = Math.round((calorieGoal * 0.2) / 9);
+        } else {
+          proteinGrams = Math.round((calorieGoal * 0.3) / 4);
+          carbsGrams = Math.round((calorieGoal * 0.4) / 4);
+          fatGrams = Math.round((calorieGoal * 0.3) / 9);
+        }
+
+        const { error: calcError } = await supabase
+          .from('metabolic_calculations')
+          .insert({
+            user_id: user.id,
+            goal: formData.goal,
+            bmr: Math.round(bmr),
+            rmr: Math.round(bmr * 1.1),
+            tdee: Math.round(maintenance),
+            calorie_goal: calorieGoal,
+            protein_grams: proteinGrams,
+            carbs_grams: carbsGrams,
+            fat_grams: fatGrams,
+          });
+
+        if (calcError) {
+          console.error('Error saving calculation:', calcError);
+        } else {
+          console.log('Calculation saved successfully!');
+        }
+      } catch (error) {
+        console.error('Error saving to database:', error);
+      }
+    }
   };
 
   const isFormValid = () => {
@@ -74,6 +242,17 @@ export default function CalorieCalculator() {
       formData.goal
     );
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
+          <p className="mt-4 text-slate-600">Loading your calculation...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
@@ -185,6 +364,18 @@ export default function CalorieCalculator() {
                       required
                     />
                   </div>
+
+                {/* Goal Weight */}
+                <div className="space-y-2">
+                    <Label htmlFor="goal-weight">Goal Weight (kg)</Label>
+                    <Input
+                        id="goal-weight"
+                        type="number"
+                        placeholder="e.g., 70"
+                        value={formData.goalWeight}
+                        onChange={(e) => setFormData({ ...formData, goalWeight: e.target.value })}
+                    />
+                </div>
 
                   {/* Activity Level */}
                   <div className="space-y-2">
@@ -345,6 +536,27 @@ export default function CalorieCalculator() {
                         <strong>Note:</strong> These are estimates based on general formulas. 
                         Consult with a healthcare professional for personalized advice.
                       </p>
+                    </div>
+                    {/* New Calculation button */}
+                    <div className="mt-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setResults(null);
+                          setFormData({
+                            age: '',
+                            height: '',
+                            weight: '',
+                            sex: '',
+                            activityLevel: '',
+                            goal: '',
+                            goalWeight: '',
+                          });
+                        }}
+                        className="w-full"
+                      >
+                        Start New Calculation
+                      </Button>
                     </div>
                   </div>
                 ) : (
