@@ -68,7 +68,7 @@ jobs:
 
       - name: Run all backend tests
         working-directory: ./backend
-        run: npm run test:all
+        run: npm run test
         env:
           SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}

@@ -4,10 +4,9 @@
   "description": "Supabase backend for FitTrack fitness tracking app",
   "main": "dist/supabase/functions/index.js",
   "scripts": {
-    "test": "npm run test:connection && npm run test:database",
+    "test": "npm run test:connection && npm run test:database", 
     "test:connection": "node test-connection.js",
-    "test:database": "node test-database.js",
-    "test:all": "node test-connection.js && node test-database.js"
+    "test:database": "node test-database.js"
   },
   "keywords": ["supabase", "fitness", "backend"],
   "author": "Your Name",
