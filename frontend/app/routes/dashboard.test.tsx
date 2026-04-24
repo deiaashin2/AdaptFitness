@@ -69,7 +69,7 @@ describe('Dashboard', () => {
 
   it('displays navigation feature cards', () => {
     renderDashboard()
-    expect(screen.getByText(/calorie calculator/i)).toBeTruthy()
+    expect(screen.getAllByText(/calorie calculator/i).length).toBeGreaterThan(0)
   })
 
   it('displays the recent activity section', () => {
