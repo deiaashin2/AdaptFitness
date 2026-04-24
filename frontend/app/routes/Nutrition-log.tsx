@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Label } from '../components/ui/label';
@@ -9,96 +11,201 @@ import { Badge } from '../components/ui/badge';
 
 interface MealEntry {
   id: string;
-  name: string;
+  user_id?: string;
+  meal_name: string;
   calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
-  time: string;
+  protein_grams: number;
+  carbs_grams: number;
+  fat_grams: number;
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  meal_date: string;
+  created_at?: string;
 }
 
 export default function NutritionLog() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isAddingMeal, setIsAddingMeal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [calorieGoal, setCalorieGoal] = useState<number>(2000);
+  const [yesterdaysMeals, setYesterdaysMeals] = useState<MealEntry[]>([]);
   
   const [newMeal, setNewMeal] = useState({
-    name: '',
+    meal_name: '',
     calories: '',
-    protein: '',
-    carbs: '',
-    fat: '',
-    mealType: 'breakfast' as 'breakfast' | 'lunch' | 'dinner' | 'snack',
+    protein_grams: '',
+    carbs_grams: '',
+    fat_grams: '',
+    meal_type: 'breakfast' as 'breakfast' | 'lunch' | 'dinner' | 'snack',
   });
 
-  const [meals, setMeals] = useState<MealEntry[]>([
-    {
-      id: '1',
-      name: 'Oatmeal with Berries',
-      calories: 320,
-      protein: 12,
-      carbs: 54,
-      fat: 8,
-      mealType: 'breakfast',
-      time: '8:30 AM',
-    },
-    {
-      id: '2',
-      name: 'Grilled Chicken Salad',
-      calories: 450,
-      protein: 38,
-      carbs: 24,
-      fat: 18,
-      mealType: 'lunch',
-      time: '12:45 PM',
-    },
-    {
-      id: '3',
-      name: 'Greek Yogurt',
-      calories: 150,
-      protein: 15,
-      carbs: 12,
-      fat: 4,
-      mealType: 'snack',
-      time: '3:00 PM',
-    },
-  ]);
+  const [meals, setMeals] = useState<MealEntry[]>([]);
 
-  const totalCalories = meals.reduce((sum, meal) => sum + meal.calories, 0);
-  const totalProtein = meals.reduce((sum, meal) => sum + meal.protein, 0);
-  const totalCarbs = meals.reduce((sum, meal) => sum + meal.carbs, 0);
-  const totalFat = meals.reduce((sum, meal) => sum + meal.fat, 0);
-  const calorieGoal = 2000; // This would come from user settings
+  // Fetch today's meals on mount
+useEffect(() => {
+  if (user) {
+    fetchTodaysMeals();
+    fetchYesterdaysMeals();
+    fetchCalorieGoal();
+  }
+}, [user]);
 
-  const handleAddMeal = (e: React.FormEvent) => {
+const fetchCalorieGoal = async () => {
+  if (!user) return;
+
+  const { data, error } = await supabase
+    .from('metabolic_calculations')
+    .select('calorie_goal, tdee, goal')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!error && data) {
+    if (data.goal === 'maintain') {
+      setCalorieGoal(data.tdee);
+    } else {
+      setCalorieGoal(data.calorie_goal);
+    }
+  }
+};
+
+const fetchTodaysMeals = async () => {
+  if (!user) return;
+
+  try {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const { data, error } = await supabase
+      .from('meal_logs')
+      .select('*')
+      .eq('user_id', user.id)
+      .gte('meal_date', todayStart.toISOString())
+      .lte('meal_date', todayEnd.toISOString())
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching meals:', error);
+    } else {
+      setMeals(data || []);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+const fetchYesterdaysMeals = async () => {
+  if (!user) return;
+
+  const yesterdayStart = new Date();
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+  yesterdayStart.setHours(0, 0, 0, 0);
+
+  const yesterdayEnd = new Date();
+  yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+  yesterdayEnd.setHours(23, 59, 59, 999);
+
+  const { data, error } = await supabase
+    .from('meal_logs')
+    .select('*')
+    .eq('user_id', user.id)
+    .gte('meal_date', yesterdayStart.toISOString())
+    .lte('meal_date', yesterdayEnd.toISOString())
+    .order('created_at', { ascending: false });
+
+  if (!error && data) setYesterdaysMeals(data);
+};
+
+  const totalCalories = meals.reduce((sum, meal) => sum + (meal.calories || 0), 0);
+  const totalProtein = meals.reduce((sum, meal) => sum + (meal.protein_grams || 0), 0);
+  const totalCarbs = meals.reduce((sum, meal) => sum + (meal.carbs_grams || 0), 0);
+  const totalFat = meals.reduce((sum, meal) => sum + (meal.fat_grams || 0), 0);
+
+  const handleAddMeal = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const mealEntry: MealEntry = {
-      id: Date.now().toString(),
-      name: newMeal.name,
-      calories: parseFloat(newMeal.calories),
-      protein: parseFloat(newMeal.protein),
-      carbs: parseFloat(newMeal.carbs),
-      fat: parseFloat(newMeal.fat),
-      mealType: newMeal.mealType,
-      time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-    };
-
-    setMeals([...meals, mealEntry]);
-    setNewMeal({
-      name: '',
-      calories: '',
-      protein: '',
-      carbs: '',
-      fat: '',
-      mealType: 'breakfast',
-    });
-    setIsAddingMeal(false);
+    if (!user) {
+      console.error('User not logged in');
+      alert('You must be logged in to add meals.');
+      return;
+    }
+  
+    try {
+      console.log('Saving meal to Supabase...');
+  
+      const mealData = {
+        user_id: user.id,
+        meal_name: newMeal.meal_name.trim(),
+        calories: parseFloat(newMeal.calories),
+        protein_grams: parseFloat(newMeal.protein_grams),
+        carbs_grams: parseFloat(newMeal.carbs_grams),
+        fat_grams: parseFloat(newMeal.fat_grams),
+        meal_type: newMeal.meal_type,
+        meal_date: new Date().toISOString(),
+      };
+  
+      console.log('Meal data:', mealData);
+  
+      const { data, error } = await supabase
+        .from('meal_logs')
+        .insert(mealData)
+        .select()
+        .single();
+  
+      if (error) {
+        console.error('Supabase error:', error);
+        alert(`Failed to save meal: ${error.message}`);
+        return;
+      }
+  
+      console.log('Meal saved successfully!', data);
+      
+      // Add to local state
+      if (data) {
+        setMeals([data, ...meals]);
+      }
+      
+      // Reset form
+      setNewMeal({
+        meal_name: '',
+        calories: '',
+        protein_grams: '',
+        carbs_grams: '',
+        fat_grams: '',
+        meal_type: 'breakfast',
+      });
+      setIsAddingMeal(false);
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      alert(`An error occurred: ${error}`);
+    }
   };
 
-  const handleDeleteMeal = (id: string) => {
-    setMeals(meals.filter(meal => meal.id !== id));
+  const handleDeleteMeal = async (id: string) => {
+    try {
+      console.log('Deleting meal...');
+  
+      const { error } = await supabase
+        .from('meal_logs')
+        .delete()
+        .eq('id', id);
+  
+      if (error) {
+        console.error('Error deleting meal:', error);
+        alert('Failed to delete meal.');
+      } else {
+        console.log('Meal deleted!');
+        setMeals(meals.filter(meal => meal.id !== id));
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
   };
 
   const getMealIcon = (mealType: string) => {
@@ -132,8 +239,19 @@ export default function NutritionLog() {
   };
 
   const filteredMeals = meals.filter(meal =>
-    meal.name.toLowerCase().includes(searchQuery.toLowerCase())
+    meal.meal_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-slate-600">Loading your meals...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-linear-to-b from-slate-50 to-white">
@@ -262,8 +380,8 @@ export default function NutritionLog() {
                       <Input
                         id="meal-name"
                         placeholder="e.g., Chicken Breast"
-                        value={newMeal.name}
-                        onChange={(e) => setNewMeal({ ...newMeal, name: e.target.value })}
+                        value={newMeal.meal_name}
+                        onChange={(e) => setNewMeal({ ...newMeal, meal_name: e.target.value })}
                         required
                       />
                     </div>
@@ -280,9 +398,9 @@ export default function NutritionLog() {
                           <button
                             key={type.value}
                             type="button"
-                            onClick={() => setNewMeal({ ...newMeal, mealType: type.value as any })}
+                            onClick={() => setNewMeal({ ...newMeal, meal_type: type.value as any })}
                             className={`p-2 border-2 rounded-lg text-sm transition-all ${
-                              newMeal.mealType === type.value
+                              newMeal.meal_type === type.value
                                 ? 'border-green-600 bg-green-50'
                                 : 'border-slate-200 hover:border-slate-300'
                             }`}
@@ -311,8 +429,8 @@ export default function NutritionLog() {
                           id="protein"
                           type="number"
                           placeholder="0"
-                          value={newMeal.protein}
-                          onChange={(e) => setNewMeal({ ...newMeal, protein: e.target.value })}
+                          value={newMeal.protein_grams}
+                          onChange={(e) => setNewMeal({ ...newMeal, protein_grams: e.target.value })}
                           required
                         />
                       </div>
@@ -322,8 +440,8 @@ export default function NutritionLog() {
                           id="carbs"
                           type="number"
                           placeholder="0"
-                          value={newMeal.carbs}
-                          onChange={(e) => setNewMeal({ ...newMeal, carbs: e.target.value })}
+                          value={newMeal.carbs_grams}
+                          onChange={(e) => setNewMeal({ ...newMeal, carbs_grams: e.target.value })}
                           required
                         />
                       </div>
@@ -333,8 +451,8 @@ export default function NutritionLog() {
                           id="fat"
                           type="number"
                           placeholder="0"
-                          value={newMeal.fat}
-                          onChange={(e) => setNewMeal({ ...newMeal, fat: e.target.value })}
+                          value={newMeal.fat_grams}
+                          onChange={(e) => setNewMeal({ ...newMeal, fat_grams: e.target.value })}
                           required
                         />
                       </div>
@@ -367,29 +485,29 @@ export default function NutritionLog() {
                 {filteredMeals.length > 0 ? (
                   <div className="space-y-3">
                     {filteredMeals.map((meal) => {
-                      const Icon = getMealIcon(meal.mealType);
+                      const Icon = getMealIcon(meal.meal_type);
                       return (
                         <div
                           key={meal.id}
                           className="flex items-center gap-4 p-4 border rounded-lg hover:shadow-md transition-shadow"
                         >
-                          <div className={`p-3 rounded-lg ${getMealTypeColor(meal.mealType)}`}>
+                          <div className={`p-3 rounded-lg ${getMealTypeColor(meal.meal_type)}`}>
                             <Icon className="size-5" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-semibold text-slate-900">{meal.name}</h4>
+                              <h4 className="font-semibold text-slate-900">{meal.meal_name}</h4>
                               <Badge variant="outline" className="text-xs capitalize">
-                                {meal.mealType}
+                                {meal.meal_type}
                               </Badge>
                             </div>
                             <div className="flex gap-4 text-sm text-slate-600">
                               <span className="font-medium text-slate-900">{meal.calories} cal</span>
-                              <span>P: {meal.protein}g</span>
-                              <span>C: {meal.carbs}g</span>
-                              <span>F: {meal.fat}g</span>
+                              <span>P: {meal.protein_grams}g</span>
+                              <span>C: {meal.carbs_grams}g</span>
+                              <span>F: {meal.fat_grams}g</span>
                             </div>
-                            <p className="text-xs text-slate-500 mt-1">{meal.time}</p>
+                            <p className="text-xs text-slate-500 mt-1"></p>
                           </div>
                           <Button
                             variant="ghost"
@@ -418,6 +536,46 @@ export default function NutritionLog() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Yesterday's Meals - separate card */}
+            {yesterdaysMeals.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Yesterday's Meals</CardTitle>
+                  <CardDescription>
+                    {new Date(Date.now() - 86400000).toLocaleDateString('en-US', {
+                      weekday: 'long', month: 'long', day: 'numeric',
+                    })} · {yesterdaysMeals.reduce((sum, m) => sum + (m.calories || 0), 0)} cal total
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {yesterdaysMeals.map((meal) => {
+                      const Icon = getMealIcon(meal.meal_type);
+                      return (
+                        <div key={meal.id} className="flex items-center gap-4 p-4 border rounded-lg opacity-75">
+                          <div className={`p-3 rounded-lg ${getMealTypeColor(meal.meal_type)}`}>
+                            <Icon className="size-5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-semibold text-slate-900">{meal.meal_name}</h4>
+                              <Badge variant="outline" className="text-xs capitalize">{meal.meal_type}</Badge>
+                            </div>
+                            <div className="flex gap-4 text-sm text-slate-600">
+                              <span className="font-medium text-slate-900">{meal.calories} cal</span>
+                              <span>P: {meal.protein_grams}g</span>
+                              <span>C: {meal.carbs_grams}g</span>
+                              <span>F: {meal.fat_grams}g</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
