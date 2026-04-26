@@ -1,11 +1,3 @@
-import type { Route } from "./+types/workouts";
-
-export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "Workouts - AdaptFitness" },
-  ];
-}
-
 export default function Workouts() {
   return (
     <div className="space-y-6">

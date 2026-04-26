@@ -17,7 +17,8 @@
     "app/components/ui/form.tsx",
     "app/components/ui/input-otp.tsx",
     "app/components/ui/sidebar.tsx",
-    "app/components/ui/sonner.tsx"
+    "app/components/ui/sonner.tsx",
+    "../backend"
   ],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],

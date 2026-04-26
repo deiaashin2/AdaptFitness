@@ -5,13 +5,13 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  type LinkDescriptor,
 } from "react-router";
 
-import type { Route } from "./+types/root";
 import "./styles/app.css";
 import { AuthProvider } from "./context/AuthContext";
 
-export const links: Route.LinksFunction = () => [
+export const links = (): LinkDescriptor[] => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
     rel: "preconnect",
@@ -44,7 +44,7 @@ export default function App() {
   );
 }
 
-export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+export function ErrorBoundary({ error }: { error: unknown }) {
   let message = "Oops!";
   let details = "An unexpected error occurred.";
   let stack: string | undefined;
