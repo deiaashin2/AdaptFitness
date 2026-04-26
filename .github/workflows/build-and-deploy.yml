@@ -35,6 +35,18 @@ jobs:
       - name: Install dependencies
         working-directory: ./frontend
         run: npm ci
+      
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+      
+      - name: Security audit (check)
+        working-directory: ./frontend
+        run: npm audit --audit-level=high
+
+      - name: Security audit (fix)
+        working-directory: ./frontend
+        run: npm audit fix
 
       - name: Run ESLint (check)
         working-directory: ./frontend
@@ -43,6 +55,10 @@ jobs:
       - name: Run ESLint (fix)
         working-directory: ./frontend
         run: npm run lint:fix
+
+      - name: TypeScript type check
+        working-directory: ./frontend
+        run: npx tsc --noEmit --skipLibCheck --project ./tsconfig.json
 
       - name: Run tests
         working-directory: ./frontend
