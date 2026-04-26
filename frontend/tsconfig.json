@@ -5,6 +5,20 @@
     "**/.client/**/*",
     ".react-router/types/**/*"
   ],
+  "exclude": [
+    "node_modules",
+    "app/components/ui/resizable.tsx",
+    "app/components/ui/accordion.tsx",
+    "app/components/ui/calendar.tsx",
+    "app/components/ui/carousel.tsx",
+    "app/components/ui/chart.tsx",
+    "app/components/ui/command.tsx",
+    "app/components/ui/drawer.tsx",
+    "app/components/ui/form.tsx",
+    "app/components/ui/input-otp.tsx",
+    "app/components/ui/sidebar.tsx",
+    "app/components/ui/sonner.tsx"
+  ],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "types": ["node", "vite/client"],

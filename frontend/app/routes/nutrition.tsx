@@ -1,11 +1,3 @@
-import type { Route } from "./+types/nutrition";
-
-export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "Nutrition - AdaptFitness" },
-  ];
-}
-
 export default function Nutrition() {
   return (
     <div className="space-y-6">
