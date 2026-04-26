@@ -54,7 +54,7 @@ jobs:
 
       - name: TypeScript type check
         working-directory: ./frontend
-        run: npx tsc --noEmit --skipLibCheck
+        run: npx tsc --noEmit --skipLibCheck --project ./tsconfig.json
 
       - name: Run tests
         working-directory: ./frontend
