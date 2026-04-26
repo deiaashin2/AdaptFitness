@@ -36,6 +36,10 @@ jobs:
         working-directory: ./frontend
         run: npm ci
       
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+      
       - name: Security audit (check)
         working-directory: ./frontend
         run: npm audit --audit-level=high
