@@ -556,7 +556,14 @@ export default function Dashboard() {
                         <CardContent>
                             <div className="text-2xl font-bold text-gray-900">{stats.currentWeight} lbs</div>
                             <Progress
-                                value={((stats.currentWeight - stats.goalWeight) / (stats.currentWeight - stats.goalWeight + 10)) * 100}
+                                value={(() => {
+                                    if (!stats.goalWeight || !stats.currentWeight) return 0;
+                                    if (latestCalculation?.goal === 'gain') {
+                                        return Math.min(Math.max((stats.currentWeight / stats.goalWeight) * 100, 0), 100);
+                                    } else {
+                                        return Math.min(Math.max(((stats.currentWeight - stats.goalWeight) / (stats.currentWeight - stats.goalWeight + 10)) * 100, 0), 100);
+                                    }
+                                })()}
                                 className="mt-2"
                             />
                             <p className="text-xs text-gray-500 mt-2">
