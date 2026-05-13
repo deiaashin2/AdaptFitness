@@ -397,6 +397,7 @@ export default function Dashboard() {
             description: 'Get personalized workout recommendations',
             color: 'bg-pink-500',
             href: '/workouts',
+            comingSoon: true,
         },
     ];
 
