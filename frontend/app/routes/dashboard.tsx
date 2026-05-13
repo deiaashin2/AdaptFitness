@@ -382,6 +382,7 @@ export default function Dashboard() {
             description: 'Quickly scan and log food items',
             color: 'bg-purple-500',
             href: '/scanner',
+            comingSoon: true,
         },
         {
             icon: Dumbbell,
@@ -737,8 +738,8 @@ export default function Dashboard() {
                             return (
                                 <Card
                                     key={index}
-                                    className="cursor-pointer hover:shadow-lg transition-shadow"
-                                    onClick={() => navigate(feature.href)}
+                                    className={`transition-shadow ${feature.comingSoon ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
+                                    onClick={() => !feature.comingSoon && navigate(feature.href)}
                                 >
                                     <CardContent className="p-6">
                                         <div className={`w-12 h-12 ${feature.color} rounded-lg flex items-center justify-center mb-4`}>
@@ -746,7 +747,12 @@ export default function Dashboard() {
                                         </div>
                                         <h4 className="font-semibold text-gray-900 mb-2">{feature.title}</h4>
                                         <p className="text-sm text-gray-600 line-clamp-2">{feature.description}</p>
-                                        <ChevronRight className="h-4 w-4 text-gray-400 mt-3" />
+                                        <div className="flex items-center justify-between mt-3">
+                                            {feature.comingSoon
+                                                ? <Badge variant="secondary">Coming Soon</Badge>
+                                                : <ChevronRight className="h-4 w-4 text-gray-400" />
+                                            }
+                                        </div>
                                     </CardContent>
                                 </Card>
                             );
