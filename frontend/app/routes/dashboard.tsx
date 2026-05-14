@@ -527,7 +527,11 @@ export default function Dashboard() {
                                     </div>
                                 )}
                             </div>
-                            <Button variant="outline" size="icon">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => navigate('/settings')}
+                            >
                                 <Settings className="h-5 w-5" />
                             </Button>
                             <div className="flex items-center gap-3">
