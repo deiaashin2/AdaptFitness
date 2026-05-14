@@ -85,7 +85,6 @@ export default function Dashboard() {
     const [weeklyMeals, setWeeklyMeals] = useState<any[]>([]);
     const [monthlyMeals, setMonthlyMeals] = useState<any[]>([]);
     const [waterIntake, setWaterIntake] = useState(0);
-    const [_waterReminder, _setWaterReminder] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
 
     // Fetch user data on mount
