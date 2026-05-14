@@ -85,6 +85,8 @@ export default function Dashboard() {
     const [weeklyMeals, setWeeklyMeals] = useState<any[]>([]);
     const [monthlyMeals, setMonthlyMeals] = useState<any[]>([]);
     const [waterIntake, setWaterIntake] = useState(0);
+    const [waterReminder, setWaterReminder] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
 
     // Fetch user data on mount
     useEffect(() => {
@@ -429,6 +431,38 @@ export default function Dashboard() {
     const getDisplayName = () => {
         return profile?.name || user?.email?.split('@')[0] || 'User';
     };
+    
+    const todaysWorkoutCount = weeklyExercises.filter(ex =>
+        new Date(ex.exercise_date).toDateString() === new Date().toDateString()
+    ).length;
+
+    const currentHour = new Date().getHours();
+
+    const notifications = [];
+
+    // Show workout reminder only after 7 PM
+    if (currentHour >= 19 && todaysWorkoutCount === 0) {
+        notifications.push({
+            title: 'Workout Reminder',
+            message: 'You have not completed your workout today.',
+        });
+    }
+
+   // Water goal reminder after 5 PM
+    if (currentHour >= 17 && stats.waterIntake < stats.waterGoal) {
+        notifications.push({
+            title: 'Water Intake Reminder 💧',
+            message: `You only drank ${stats.waterIntake}/${stats.waterGoal} cups of water today.`,
+        });
+    }
+
+    // Calories over goal
+    if (stats.caloriesConsumed > stats.caloriesGoal) {
+        notifications.push({
+            title: 'Calorie Alert',
+            message: 'You went over your recommended daily calories.',
+        });
+    } 
 
     // Add loading state
     if (loading) {
@@ -454,11 +488,45 @@ export default function Dashboard() {
                             </div>
                             <h1 className="text-xl font-bold text-gray-900">FitTrack Pro</h1>
                         </div>
-
                         <div className="flex items-center gap-4">
-                            <Button variant="outline" size="icon">
-                                <Bell className="h-5 w-5" />
-                            </Button>
+                            <div className="relative">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => setShowNotifications(!showNotifications)}
+                                    className="relative"
+                                >
+                                    <Bell className="h-5 w-5" />
+
+                                    {notifications.length > 0 && (
+                                        <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
+                                    )}
+                                </Button>
+
+                                {showNotifications && (
+                                    <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                                        <div className="p-4 border-b">
+                                            <h3 className="font-semibold text-gray-900">
+                                                Notifications
+                                            </h3>
+                                        </div>
+
+                                        <div className="p-4 space-y-3">
+                                            {notifications.map((notification, index) => (
+                                                <div key={index} className="text-sm">
+                                                    <p className="font-medium text-gray-900">
+                                                        {notification.title}
+                                                    </p>
+
+                                                    <p className="text-gray-500">
+                                                        {notification.message}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             <Button variant="outline" size="icon">
                                 <Settings className="h-5 w-5" />
                             </Button>
