@@ -489,10 +489,6 @@ export default function Dashboard() {
                             <h1 className="text-xl font-bold text-gray-900">FitTrack Pro</h1>
                         </div>
                         <div className="flex items-center gap-4">
-                            <Button variant="outline" size="icon">
-                                <Bell className="h-5 w-5" />
-                            </Button>
-                            <Button variant="outline" size="icon" onClick={() => navigate('/settings')}>
                             <div className="relative">
                                 <Button
                                     variant="outline"
@@ -531,7 +527,11 @@ export default function Dashboard() {
                                     </div>
                                 )}
                             </div>
-                            <Button variant="outline" size="icon">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => navigate('/settings')}
+                            >
                                 <Settings className="h-5 w-5" />
                             </Button>
                             <div className="flex items-center gap-3">
