@@ -1,22 +1,27 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (user) {
+    // Listen for auth state change — redirect as soon as session is confirmed
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
         navigate('/dashboard', { replace: true });
-      } else {
-        navigate('/login', { replace: true });
       }
-    }, 1500);
+    });
 
-    return () => clearTimeout(timer);
-  }, [user, navigate]);
+    // Also check if session already exists (handles fast redirects)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate('/dashboard', { replace: true });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-slate-50">
