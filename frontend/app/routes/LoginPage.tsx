@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { Activity } from 'lucide-react';
+import { Activity, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { login, signInWithGoogle, signInWithGithub } = useAuth();
@@ -98,16 +99,32 @@ export default function LoginPage() {
                     Forgot password?
                   </a>
                 </div>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="border-2 border-emerald-600 rounded-2xl text-slate-700"
-                  required
-                  disabled={loading}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="border-2 border-emerald-600 rounded-2xl text-slate-700 pr-10"
+                    required
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-pressed={showPassword}
+                    className="absolute inset-y-0 right-3 flex items-center text-slate-500 hover:text-emerald-700 focus:outline-none focus:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={loading}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="size-4" aria-hidden="true" />
+                    ) : (
+                      <Eye className="size-4" aria-hidden="true" />
+                    )}
+                  </button>
+                </div>
               </div>
               <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700" disabled={loading}>
                 {loading ? 'Signing In...' : 'Sign In'}
