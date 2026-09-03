@@ -30,29 +30,21 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'frontend/package-lock.json'
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         working-directory: ./frontend
         run: npm ci
-      
+
       - name: Install backend dependencies
         working-directory: ./backend
         run: npm ci
-      
-      - name: Security audit (check)
+
+      - name: Security audit
         working-directory: ./frontend
         run: npm audit --audit-level=high
 
-      - name: Security audit (fix)
-        working-directory: ./frontend
-        run: npm audit fix
-
-      - name: Run ESLint (check)
+      - name: Run ESLint
         working-directory: ./frontend
         run: npm run lint
-
-      - name: Run ESLint (fix)
-        working-directory: ./frontend
-        run: npm run lint:fix
 
       - name: TypeScript type check
         working-directory: ./frontend
@@ -61,8 +53,9 @@ jobs:
       - name: Run tests
         working-directory: ./frontend
         run: npm run test:ci
+
   backend-tests:
-    name: supabase and database connection test
+    name: Supabase and Database Connection Test
     runs-on: ubuntu-latest
 
     steps:
@@ -76,7 +69,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'backend/package-lock.json'
 
-      - name: Install dependencies
+      - name: Install backend dependencies
         working-directory: ./backend
         run: npm ci
 
@@ -87,9 +80,8 @@ jobs:
           SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-
   build:
-    name: Build frontend
+    name: Build Frontend
     runs-on: ubuntu-latest
     needs: quality-checks
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
@@ -105,7 +97,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'frontend/package-lock.json'
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         working-directory: ./frontend
         run: npm ci
 
@@ -115,4 +107,3 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
-
