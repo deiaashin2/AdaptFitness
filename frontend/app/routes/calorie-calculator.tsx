@@ -15,7 +15,8 @@ export default function CalorieCalculator() {
   
   const [formData, setFormData] = useState({
     age: '',
-    height: '',
+    heightFeet: '',
+    heightInches: '',
     weight: '',
     sex: '',
     activityLevel: '',
@@ -76,14 +77,23 @@ export default function CalorieCalculator() {
       // If we have data, populate the form and results
       if (calcData && metricsData) {
         // Populate form
+        const totalInches = Number(metricsData.height) / 2.54;
+        const feet = Math.floor(totalInches / 12);
+        const inches = Math.round(totalInches % 12);
+        const weightLbs = Number(metricsData.weight) / 0.45359237;
+        const goalWeightLbs = metricsData.goal_weight
+          ? Number(metricsData.goal_weight) / 0.45359237
+          : null;
+
         setFormData({
           age: metricsData.age.toString(),
-          height: metricsData.height.toString(),
-          weight: metricsData.weight.toString(),
+          heightFeet: feet.toString(),
+          heightInches: inches.toString(),
+          weight: weightLbs.toFixed(1),
           sex: metricsData.gender,
           activityLevel: mapActivityLevelFromDB(metricsData.activity_level),
           goal: calcData.goal,
-          goalWeight: metricsData.goal_weight?.toString() || '',  // ← use goalWeight not goal_weight
+          goalWeight: goalWeightLbs ? goalWeightLbs.toFixed(1) : '',
         });
 
         // Populate results
@@ -122,8 +132,16 @@ export default function CalorieCalculator() {
     e.preventDefault();
 
     const age = parseFloat(formData.age);
-    const height = parseFloat(formData.height);
-    const weight = parseFloat(formData.weight);
+
+    const totalInches =
+      parseFloat(formData.heightFeet) * 12 +
+      parseFloat(formData.heightInches || '0');
+
+    const height = totalInches * 2.54; // feet/inches -> cm
+    const weight = parseFloat(formData.weight) * 0.45359237; // lbs -> kg
+    const goalWeightKg = formData.goalWeight
+      ? parseFloat(formData.goalWeight) * 0.45359237
+      : null;
 
     // Mifflin-St Jeor Equation for BMR
     let bmr: number;
@@ -170,11 +188,11 @@ export default function CalorieCalculator() {
             user_id: user.id,
             age: parseInt(formData.age),
             gender: formData.sex,
-            weight: parseFloat(formData.weight),
-            height: parseFloat(formData.height),
+            weight,
+            height,
             activity_level: activityLevelMap[formData.activityLevel],
-            unit_system: 'metric',
-            goal_weight: formData.goalWeight ? parseFloat(formData.goalWeight) : null,
+            unit_system: 'imperial',
+            goal_weight: goalWeightKg,
           });
 
         if (metricsError) {
@@ -235,7 +253,8 @@ export default function CalorieCalculator() {
   const isFormValid = () => {
     return (
       formData.age &&
-      formData.height &&
+      formData.heightFeet &&
+      formData.heightInches !== '' &&
       formData.weight &&
       formData.sex &&
       formData.activityLevel &&
@@ -336,30 +355,49 @@ export default function CalorieCalculator() {
 
                   {/* Height */}
                   <div className="space-y-2">
-                    <Label htmlFor="height">Height (cm)</Label>
-                    <Input
-                      id="height"
-                      type="number"
-                      placeholder="170"
-                      value={formData.height}
-                      onChange={(e) => handleInputChange('height', e.target.value)}
-                      min="120"
-                      max="250"
-                      required
-                    />
+                    <Label>Height</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Input
+                          id="height-feet"
+                          type="number"
+                          placeholder="5"
+                          value={formData.heightFeet}
+                          onChange={(e) => handleInputChange('heightFeet', e.target.value)}
+                          min="3"
+                          max="8"
+                          required
+                        />
+                        <span className="text-sm text-slate-500">ft</span>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Input
+                          id="height-inches"
+                          type="number"
+                          placeholder="6"
+                          value={formData.heightInches}
+                          onChange={(e) => handleInputChange('heightInches', e.target.value)}
+                          min="0"
+                          max="11"
+                          required
+                        />
+                        <span className="text-sm text-slate-500">in</span>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Weight */}
                   <div className="space-y-2">
-                    <Label htmlFor="weight">Weight (kg)</Label>
+                    <Label htmlFor="weight">Weight (lbs)</Label>
                     <Input
                       id="weight"
                       type="number"
-                      placeholder="70"
+                      placeholder="150"
                       value={formData.weight}
                       onChange={(e) => handleInputChange('weight', e.target.value)}
-                      min="30"
-                      max="300"
+                      min="60"
+                      max="700"
                       step="0.1"
                       required
                     />
@@ -367,11 +405,11 @@ export default function CalorieCalculator() {
 
                 {/* Goal Weight */}
                 <div className="space-y-2">
-                    <Label htmlFor="goal-weight">Goal Weight (kg)</Label>
+                    <Label htmlFor="goal-weight">Goal Weight (lbs)</Label>
                     <Input
                         id="goal-weight"
                         type="number"
-                        placeholder="e.g., 70"
+                        placeholder="e.g., 140"
                         value={formData.goalWeight}
                         onChange={(e) => setFormData({ ...formData, goalWeight: e.target.value })}
                     />
@@ -498,7 +536,7 @@ export default function CalorieCalculator() {
                       <div className={`text-sm ${
                         formData.goal === 'lose' ? 'text-emerald-700' : 'text-orange-700'
                       }`}>
-                        calories/day (~0.5kg/week loss)
+                        calories/day (~1 lb/week loss)
                       </div>
                     </div>
 
@@ -545,7 +583,8 @@ export default function CalorieCalculator() {
                           setResults(null);
                           setFormData({
                             age: '',
-                            height: '',
+                            heightFeet: '',
+                            heightInches: '',
                             weight: '',
                             sex: '',
                             activityLevel: '',
