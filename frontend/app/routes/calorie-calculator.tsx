@@ -472,6 +472,7 @@ export default function CalorieCalculator() {
                     type="submit"
                     className="w-full bg-emerald-600 hover:bg-emerald-700"
                     disabled={!isFormValid()}
+                    onClick={() => navigate('/dashboard')}
                   >
                     Calculate Calories
                   </Button>
@@ -500,74 +501,78 @@ export default function CalorieCalculator() {
                       <div className="text-3xl font-bold text-slate-900">{results.bmr}</div>
                       <div className="text-sm text-slate-500">calories/day at rest</div>
                     </div>
+                    
+                    {/* Weight Loss */}
+                      <div className={`p-4 rounded-lg border-2 transition-all duration-300 ${
+                        formData.goal === 'lose'
+                          ? 'bg-orange-50 border-orange-500 ring-4 ring-orange-100 shadow-lg scale-[1.02]'
+                          : 'bg-orange-50 border-orange-200'
+                      }`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <TrendingDown className="size-4 text-orange-600" />
+
+                          <div className="text-sm font-medium text-orange-900">
+                            Lose Weight
+                            {formData.goal === 'lose' && ' (Recommended)'}
+                          </div>
+                        </div>
+
+                        <div className="text-3xl font-bold text-orange-900">
+                          {results.weightLoss}
+                        </div>
+
+                        <div className="text-sm text-orange-700">
+                          calories/day (~1 lb/week loss)
+                        </div>
+                      </div>
 
                     {/* Maintenance Calories */}
-                    <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+                    <div className={`p-4 rounded-lg border-2 transition-all duration-300 ${
+                      formData.goal === 'maintain'
+                        ? 'bg-blue-50 border-blue-500 ring-4 ring-blue-100 shadow-lg scale-[1.02]'
+                        : 'bg-blue-50 border-blue-200'
+                    }`}>
                       <div className="flex items-center gap-2 mb-1">
                         <Minus className="size-4 text-blue-600" />
-                        <div className="text-sm font-medium text-blue-900">Maintain Weight</div>
-                      </div>
-                      <div className="text-3xl font-bold text-blue-900">{results.maintenance}</div>
-                      <div className="text-sm text-blue-700">calories/day</div>
-                    </div>
 
-                    {/* Weight Loss */}
-                    <div className={`p-4 rounded-lg border-2 ${
-                      formData.goal === 'lose' 
-                        ? 'bg-emerald-50 border-emerald-600' 
-                        : 'bg-orange-50 border-orange-200'
-                    }`}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <TrendingDown className={`size-4 ${
-                          formData.goal === 'lose' ? 'text-emerald-600' : 'text-orange-600'
-                        }`} />
-                        <div className={`text-sm font-medium ${
-                          formData.goal === 'lose' ? 'text-emerald-900' : 'text-orange-900'
-                        }`}>
-                          Lose Weight
-                          {formData.goal === 'lose' && ' (Recommended)'}
+                        <div className="text-sm font-medium text-blue-900">
+                          Maintain Weight
+                          {formData.goal === 'maintain' && ' (Recommended)'}
                         </div>
                       </div>
-                      <div className={`text-3xl font-bold ${
-                        formData.goal === 'lose' ? 'text-emerald-900' : 'text-orange-900'
-                      }`}>
-                        {results.weightLoss}
+
+                      <div className="text-3xl font-bold text-blue-900">
+                        {results.maintenance}
                       </div>
-                      <div className={`text-sm ${
-                        formData.goal === 'lose' ? 'text-emerald-700' : 'text-orange-700'
-                      }`}>
-                        calories/day (~1 lb/week loss)
+
+                      <div className="text-sm text-blue-700">
+                        calories/day
                       </div>
                     </div>
 
-                    {/* Weight Gain */}
-                    <div className={`p-4 rounded-lg border-2 ${
-                      formData.goal === 'gain' 
-                        ? 'bg-emerald-50 border-emerald-600' 
-                        : 'bg-purple-50 border-purple-200'
-                    }`}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <TrendingUp className={`size-4 ${
-                          formData.goal === 'gain' ? 'text-emerald-600' : 'text-purple-600'
-                        }`} />
-                        <div className={`text-sm font-medium ${
-                          formData.goal === 'gain' ? 'text-emerald-900' : 'text-purple-900'
-                        }`}>
-                          Gain Weight
-                          {formData.goal === 'gain' && ' (Recommended)'}
-                        </div>
-                      </div>
-                      <div className={`text-3xl font-bold ${
-                        formData.goal === 'gain' ? 'text-emerald-900' : 'text-purple-900'
-                      }`}>
-                        {results.weightGain}
-                      </div>
-                      <div className={`text-sm ${
-                        formData.goal === 'gain' ? 'text-emerald-700' : 'text-purple-700'
-                      }`}>
-                        calories/day (controlled gain)
+                  {/* Weight Gain */}
+                  <div className={`p-4 rounded-lg border-2 transition-all duration-300 ${
+                    formData.goal === 'gain'
+                      ? 'bg-purple-50 border-purple-500 ring-4 ring-purple-100 shadow-lg scale-[1.02]'
+                      : 'bg-purple-50 border-purple-200'
+                  }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <TrendingUp className="size-4 text-purple-600" />
+
+                      <div className="text-sm font-medium text-purple-900">
+                        Gain Weight
+                        {formData.goal === 'gain' && ' (Recommended)'}
                       </div>
                     </div>
+
+                    <div className="text-3xl font-bold text-purple-900">
+                      {results.weightGain}
+                    </div>
+
+                    <div className="text-sm text-purple-700">
+                      calories/day (controlled gain)
+                    </div>
+                  </div>
 
                     <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
                       <p className="text-sm text-amber-900">
@@ -576,7 +581,7 @@ export default function CalorieCalculator() {
                       </p>
                     </div>
                     {/* New Calculation button */}
-                    <div className="mt-4">
+                    <div className="pt-6 flex flex-col gap-4">
                       <Button
                         variant="outline"
                         onClick={() => {
