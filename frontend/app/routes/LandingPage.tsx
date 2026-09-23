@@ -40,8 +40,11 @@ export default function LandingPage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
                         <div className="flex items-center gap-2">
-                            <Activity className="size-8 text-emerald-600" />
-                            <span className="text-xl font-semibold text-emerald-600">FitTrack</span>
+                            <img
+                            src="/adaptfitness-logo.png"
+                            alt="AdaptFitness"
+                            className="h-12 w-auto object-contain"
+                            />
                         </div>
                         <div className="flex gap-3">
                             <Link to="/login">
@@ -64,7 +67,7 @@ export default function LandingPage() {
                                 Your Complete Fitness & Nutrition Companion
                             </h1>
                             <p className="text-xl text-slate-600 mb-8">
-                                Track your calories, log your meals, monitor your workouts, and achieve your fitness goals with FitTrack.
+                                Track your calories, log your meals, monitor your workouts, and achieve your fitness goals with AdaptFitness.
                             </p>
                             <div className="flex gap-4">
                                 <Link to="/signup">
@@ -178,7 +181,7 @@ export default function LandingPage() {
                         Ready to Transform Your Fitness Journey?
                     </h2>
                     <p className="text-xl mb-8 text-emerald-50">
-                        Join thousands of users who are achieving their fitness goals with FitTrack
+                        Join thousands of users who are achieving their fitness goals with AdaptFitness
                     </p>
                     <Link to="/signup">
                         <Button size="lg" variant="secondary" className="bg-white text-emerald-600 hover:bg-slate-50">
@@ -195,7 +198,7 @@ export default function LandingPage() {
                         <div>
                             <div className="flex items-center gap-2 mb-4">
                                 <Activity className="size-6" />
-                                <span className="font-semibold">FitTrack</span>
+                                <span className="font-semibold">AdaptFitness</span>
                             </div>
                             <p className="text-slate-400">Your complete fitness and nutrition companion</p>
                         </div>
@@ -225,7 +228,7 @@ export default function LandingPage() {
                         </div>
                     </div>
                     <div className="border-t border-slate-800 mt-8 pt-8 text-center text-slate-400">
-                        <p>&copy; 2026 FitTrack. All rights reserved.</p>
+                        <p>&copy; 2026 AdaptFitness. All rights reserved.</p>
                     </div>
                 </div>
             </footer>

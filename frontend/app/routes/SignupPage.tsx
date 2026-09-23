@@ -89,8 +89,11 @@ export default function SignupPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <Activity className="size-10 text-emerald-600" />
-            <span className="text-2xl font-bold text-emerald-600">FitTrack</span>
+            <img
+            src="/adaptfitness-logo.png"
+            alt="AdaptFitness"
+            className="h-12 w-auto object-contain"
+          />
           </Link>
         </div>
 
