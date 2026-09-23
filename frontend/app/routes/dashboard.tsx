@@ -485,7 +485,11 @@ export default function Dashboard() {
                             <div className="flex items-center justify-center w-10 h-10 bg-linear-to-br from-blue-500 to-purple-600 rounded-lg">
                                 <Flame className="h-6 w-6 text-white" />
                             </div>
-                            <h1 className="text-xl font-bold text-gray-900">FitTrack Pro</h1>
+                            <img
+                            src="/adaptfitness-logo.png"
+                            alt="AdaptFitness"
+                            className="h-12 w-auto object-contain"
+                             />
                         </div>
                         <div className="flex items-center gap-4">
                             <div className="relative">
