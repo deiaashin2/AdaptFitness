@@ -255,7 +255,8 @@ export default function Dashboard() {
         workoutsThisWeek: weeklyExercises.length,
         workoutsGoal: getWorkoutGoal(),
         currentWeight: userMetrics?.weight ? kgToLbs(userMetrics.weight) : 0,
-        goalWeight: userMetrics?.goal_weight ? kgToLbs(userMetrics.goal_weight) : 0,        waterIntake: waterIntake,
+        goalWeight: userMetrics?.goal_weight ?? 0,        
+        waterIntake: waterIntake,
         waterGoal: 8,
     };
 
