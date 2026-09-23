@@ -255,8 +255,7 @@ export default function Dashboard() {
         workoutsThisWeek: weeklyExercises.length,
         workoutsGoal: getWorkoutGoal(),
         currentWeight: userMetrics?.weight ? kgToLbs(userMetrics.weight) : 0,
-        goalWeight: userMetrics?.goal_weight ?? 0,        
-        waterIntake: waterIntake,
+        goalWeight: userMetrics?.goal_weight ? kgToLbs(userMetrics.goal_weight) : 0,        waterIntake: waterIntake,
         waterGoal: 8,
     };
 
@@ -484,7 +483,6 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between h-16">
                         <div className="flex items-center gap-3">
                             <div className="flex items-center justify-center w-10 h-10 bg-linear-to-br from-blue-500 to-purple-600 rounded-lg">
-                                <Flame className="h-6 w-6 text-white" />
                             </div>
                             <img
                             src="/adaptfitness-logo.png"
